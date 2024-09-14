@@ -25,10 +25,15 @@ public class PlayerController : MonoBehaviour
 
     public AudioClip gameOverSound;
     public AudioSource backgroundMusic;
+
+    public AudioSource clockSound;
     private AudioSource audioSource;
-    public int requiredFuel = 15; // Número de combustíveis necessários para vencer
+    public int requiredFuel = 0; // Número de combustíveis necessários para vencer
     public float rocketSpeed = 10f; // Velocidade de subida do foguete
     public bool isGameWon = false;
+
+    // Nova variável para evitar que o som de Game Over toque várias vezes
+    public bool isDead = false;
 
     // Referência ao GameManager para pegar o tempo
     public GameManager gameManager;
@@ -50,6 +55,12 @@ public class PlayerController : MonoBehaviour
         count = 0; 
         SetCountText();
         
+        // Se o controlador de música do menu existir, pare a música do menu
+        if (MusicController.instance != null)
+        {
+            MusicController.instance.StopMusic();
+        }
+
         // Certifique-se de que o pop-up de vitória e a tela de game over estão ocultos ao iniciar o jogo
         if (winTextObject != null)
         {
@@ -73,12 +84,11 @@ public class PlayerController : MonoBehaviour
         finalCamera.gameObject.SetActive(false);
 
         winPopup.SetActive(false);
-
     }
 
     void OnMove(InputValue movementValue)
     {
-        if (!isGameWon) // Bloqueia movimento se o jogo estiver ganho
+        if (!isGameWon && !isDead) // Bloqueia movimento se o jogo estiver ganho ou o jogador estiver morto
         {
             Vector2 movementVector = movementValue.Get<Vector2>();
 
@@ -94,14 +104,17 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate() 
     {
-        Vector3 movement = new Vector3(movementX, 0.0f, movementY);
-        rb.AddForce(movement * speed);
+        if (!isDead) // Impede movimento se o jogador estiver morto
+        {
+            Vector3 movement = new Vector3(movementX, 0.0f, movementY);
+            rb.AddForce(movement * speed);
+        }
     }
 
     void Update() 
     {
         // Verificar se o jogador caiu do mapa
-        if (transform.position.y < deathYThreshold)
+        if (transform.position.y < deathYThreshold && !isDead)
         {
             Die();  // Chama o método para lidar com a "morte"
         }
@@ -111,6 +124,12 @@ public class PlayerController : MonoBehaviour
         {
             isGameWon = true;
             StartWinSequence(); // Inicia a sequência de vitória
+        }
+
+        // Verifica se o jogador pressionou a tecla "R" ou o botão "Reiniciar" no controle
+        if (Keyboard.current.rKey.wasPressedThisFrame || Gamepad.current.buttonSouth.wasPressedThisFrame)
+        {
+            RestartGame(); // Chama o método para reiniciar o jogo
         }
     }
 
@@ -126,9 +145,23 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    void StopThwomp()
+    {
+        foreach (ThwompObstacle thwomp in thwomps)
+        {
+            thwomp.StopThwomp();
+        }
+    }
+
     public void Die()
     {
-        // Toca o som de Game Over
+        if (isDead) return; // Garante que o método seja chamado apenas uma vez
+
+        isDead = true; // Marca o jogador como morto
+
+        clockSound.Stop(); // Para o som do cronômetro
+        
+        // Toca o som de Game Over apenas uma vez
         audioSource.PlayOneShot(gameOverSound);
 
         // Para a música de fundo
@@ -141,20 +174,13 @@ public class PlayerController : MonoBehaviour
         rb.velocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
 
-        // Para todos os sons atuais
-        // audioSource.Stop();
-
-        // Opcional: Desabilitar controles ou reiniciar o jogo
-        this.enabled = false; // Desativa o script para impedir mais movimentação
-
-        // Para o movimento de todos os Thwomps
-        foreach (ThwompObstacle thwomp in thwomps)
-        {
-            thwomp.StopThwomp();  // Chama o método para parar os Thwomps
-        }
+        StopThwomp();
 
         // Para o cronômetro
         gameManager.StopTimer();
+
+        // Impede mais movimentação do jogador
+        this.enabled = false;
     }
 
     // Método para reiniciar o jogo
@@ -177,6 +203,8 @@ public class PlayerController : MonoBehaviour
         rb.angularVelocity = Vector3.zero;
         this.enabled = false; // Impede que o jogador se mova
 
+        StopThwomp(); // Para o movimento de todos os Thwomps
+
         // Toca o som de vitória
         audioSource.PlayOneShot(winningSound);
 
@@ -191,7 +219,6 @@ public class PlayerController : MonoBehaviour
     }
 
     // Corrotina para fazer a transição da câmera até o foguete
-// Corrotina para fazer a transição da câmera até o foguete
     IEnumerator TransitionCameraToRocket()
     {
         float duration = 2.0f; // Duração da transição da câmera
@@ -232,7 +259,6 @@ public class PlayerController : MonoBehaviour
             yield return null; // Espera até o próximo frame
         }
     }
-
 
     // Exibe o pop-up de vitória
     void ShowWinPopup()
