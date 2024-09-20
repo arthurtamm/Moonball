@@ -5,7 +5,7 @@ using UnityEngine;
 public class EnemyController : MonoBehaviour
 {
     public Transform player;         // Referência ao jogador
-    public float speed = 5f;         // Velocidade do inimigo
+    public float speed = 7f;         // Velocidade do inimigo
     public float patrolSpeed = 2f;   // Velocidade quando está patrulhando
     public float minX, maxX, minZ, maxZ, minY;  // Limites de movimentação do inimigo (X e Z)
 
@@ -105,5 +105,13 @@ public class EnemyController : MonoBehaviour
             Debug.Log("Player killed by enemy!");
             playerController.Die();
         }
+    }
+
+    private void OnDrawGizmos()
+    {
+        // Desenha um cubo para representar a área de vigilância
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireCube(new Vector3((minX + maxX) / 2, minY, (minZ + maxZ) / 2),
+                            new Vector3(maxX - minX, 1, maxZ - minZ));
     }
 }

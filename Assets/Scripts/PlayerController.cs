@@ -10,7 +10,7 @@ public class PlayerController : MonoBehaviour
     private Rigidbody rb;
     private float movementX;
     private float movementY;
-    public float speed = 0;
+    public float speed = 10;
     public TextMeshProUGUI countText;
     public GameObject winTextObject;
     public GameObject winPopup; // Pop-up para mostrar vitória
@@ -46,6 +46,13 @@ public class PlayerController : MonoBehaviour
 
     // Array para armazenar os Thwomps
     private ThwompObstacle[] thwomps;
+
+    public float minX_drop = -40f;
+    public float maxX_drop = -10f;
+    public float minZ_drop = 40f;
+    public float maxZ_drop = 60f;
+
+    public bool hasMoved = false; // Verifica se o jogador já se moveu
 
     // Start is called before the first frame update
     void Start()
@@ -95,11 +102,18 @@ public class PlayerController : MonoBehaviour
             movementX = movementVector.x;
             movementY = movementVector.y;
         }
+
+        // Verifica se o jogador se moveu pela primeira vez
+        if (!hasMoved && (movementX != 0 || movementY != 0))
+        {
+            hasMoved = true;
+            gameManager.HideInstructions(); // Chama o método para ocultar as instruções
+        }
     }
 
     void SetCountText() 
     {
-       countText.text = "Fuel: " + count.ToString();
+       countText.text = count.ToString();
     }
 
     void FixedUpdate() 
@@ -126,8 +140,24 @@ public class PlayerController : MonoBehaviour
             StartWinSequence(); // Inicia a sequência de vitória
         }
 
+        Debug.Log("X: " + transform.position.x + " Z: " + transform.position.z);
+        Debug.Log("minX: " + minX_drop + " maxX: " + maxX_drop + " minZ: " + minZ_drop + " maxZ: " + maxZ_drop);
+        if (transform.position.x > minX_drop && transform.position.x < maxX_drop && transform.position.z > minZ_drop && transform.position.z < maxZ_drop)
+        {
+            speed = 15;
+
+            if (maxX_drop >= -15)
+            {
+                speed = 22;
+            }
+        }
+        else
+        {
+            speed = 10;
+        }
+
         // Verifica se o jogador pressionou a tecla "R" ou o botão "Reiniciar" no controle
-        if (Keyboard.current.rKey.wasPressedThisFrame || Gamepad.current.buttonSouth.wasPressedThisFrame)
+        if (Keyboard.current.rKey.wasPressedThisFrame)// || Gamepad.current.buttonSouth.wasPressedThisFrame)
         {
             RestartGame(); // Chama o método para reiniciar o jogo
         }
@@ -267,4 +297,14 @@ public class PlayerController : MonoBehaviour
         TextMeshProUGUI winMessage = winPopup.GetComponentInChildren<TextMeshProUGUI>();
         winMessage.text = "You Win!\nTime: " + gameManager.GetTimeSpent() + "\nFuel: " + count.ToString();
     }
+
+    private void OnDrawGizmos()
+    {
+        // Desenha um cubo para representar a área de vigilância
+        Gizmos.color = Color.blue;
+
+        Gizmos.DrawWireCube(new Vector3((minX_drop + maxX_drop) / 2, 0, (minZ_drop + maxZ_drop) / 2),
+                            new Vector3(maxX_drop - minX_drop, 1, maxZ_drop - minZ_drop));
+    }
+
 }

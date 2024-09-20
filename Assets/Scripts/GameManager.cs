@@ -2,15 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
     private float timeSpent = 0f;  // Tempo gasto na partida
     public bool timerIsRunning = false;
-    public TextMeshProUGUI timeText;  // O texto de tempo que será exibido na tela
     public TextMeshProUGUI instructionText;
 
-    public float initialTime = 15f;  // Tempo inicial em segundos
+    public float initialTime = 600f;  // Tempo inicial em segundos
     public Transform player;  // Referência ao jogador
     private PlayerController playerController; // Referência ao PlayerController
 
@@ -20,6 +20,8 @@ public class GameManager : MonoBehaviour
     public GameObject panel;
     public float displayDuration = 10f;
 
+    public Slider timeSlider;  // Barra de progresso do tempo
+
     // Cores para o tempo
     public Color greenColor = Color.green;
     public Color yellowColor = Color.yellow;
@@ -28,8 +30,11 @@ public class GameManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        timerIsRunning = true;  // Começa a contar o tempo
-        ShowInstructions();     // Exibe as instruções
+        instructionText.text = "Collect enough fuel and help the astronaut to launch the rocket. \n \n Press R or button A to restart the game.";
+
+        // Configurar o Slider
+        timeSlider.maxValue = initialTime;
+        timeSlider.value = initialTime;
 
         // Encontra o PlayerController
         if (player != null)
@@ -66,21 +71,27 @@ public class GameManager : MonoBehaviour
 
         float timeRemaining = initialTime - timeToDisplay;  // Calcula o tempo restante
 
+        // Atualiza o slider
+        timeSlider.value = timeRemaining;
+
         // show time left
-        timeText.text = "Time: " + string.Format("{0:00}:{1:00}", Mathf.FloorToInt(initialTime - timeToDisplay) / 60, Mathf.FloorToInt(initialTime - timeToDisplay) % 60);
+        // timeText.text = "Time: " + string.Format("{0:00}:{1:00}", Mathf.FloorToInt(initialTime - timeToDisplay) / 60, Mathf.FloorToInt(initialTime - timeToDisplay) % 60);
 
         // Mudar a cor do texto baseado no tempo restante
         if (timeRemaining <= 60f)  // Menos de 1 minuto
         {
-            timeText.color = redColor;
+            // timeText.color = redColor;
+            timeSlider.fillRect.GetComponent<Image>().color = redColor;
         }
         else if (timeRemaining <= 150f && timeRemaining > 60f)  // Menos de 2.5 minutos (150 segundos), mas mais de 1 minuto
         {
-            timeText.color = yellowColor;
+            // timeText.color = yellowColor;
+            timeSlider.fillRect.GetComponent<Image>().color = yellowColor;
         }
         else  // Caso contrário, verde
         {
-            timeText.color = greenColor;
+            // timeText.color = greenColor;
+            timeSlider.fillRect.GetComponent<Image>().color = greenColor;
         }
         
         // Tocar o som do relógio apenas se o tempo restante for menor que 15 segundos
@@ -92,7 +103,7 @@ public class GameManager : MonoBehaviour
         // if time is over, player dies and stop the timer
         if (timeToDisplay >= initialTime)
         {
-            timeText.text = "Time: 00:00";
+            // timeText.text = "Time: 00:00";
             StopTimer();
             timerSound.Stop();
             playerController.Die();
@@ -113,18 +124,10 @@ public class GameManager : MonoBehaviour
         timerIsRunning = false;
     }
 
-    // Função para exibir o texto de instruções
-    public void ShowInstructions()
+    public void HideInstructions()
     {
-        instructionText.text = "Collect enough fuel and help the astronaut to launch the rocket. \n Press R or the Restart button to restart the game.";
-        StartCoroutine(HideInstructionsAfterDelay());
-    }
-
-    // Corrotina que esconde o texto após um tempo
-    IEnumerator HideInstructionsAfterDelay()
-    {
-        yield return new WaitForSeconds(displayDuration);  // Espera pela duração definida
-        instructionText.gameObject.SetActive(false);       // Esconde o texto
+        instructionText.gameObject.SetActive(false);       // Esconde o texto de instruções
         panel.SetActive(false);                           // Esconde o painel
+        timerIsRunning = true;  // Começa a contar o tempo
     }
 }
